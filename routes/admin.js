@@ -3,7 +3,9 @@ const router = express.Router();
 
 const adminController = require('../controllers/admin');
 
-router.post('/add-theme', adminController.createTheme);
+router.get('/themes', adminController.themes);
+
+router.post('/theme', adminController.createTheme);
 
 router.post('/theme/:themeId', adminController.updateTheme);
 
@@ -16,6 +18,6 @@ router.delete(
   adminController.deleteReading
 );
 
-router.post('/theme/reset-votes/:themeId', adminController.resetVotes);
+router.post('/theme/votes/:themeId', adminController.resetVotes);
 
 module.exports = router;

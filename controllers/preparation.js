@@ -35,54 +35,51 @@ exports.getAllThemes = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getReadings = catchAsync(async (req, res, next) => {
+exports.getReadings = async (req, res, next) => {
   const themeId = req.params.themeId;
 
-  const theme = await Theme.findById(themeId);
+  try {
+    const theme = await Theme.findById(themeId);
 
-  if (!theme) {
-    return next(new AppError('No tour found with that ID', 404));
+    let readings;
+
+    if (theme.readings.length > 0) {
+      const historical = theme.readings.filter((reading) => {
+        return reading.category == 'Historical';
+      });
+
+      const prophetical = theme.readings.filter((reading) => {
+        return reading.category == 'Prophetical';
+      });
+
+      const epistle = theme.readings.filter((reading) => {
+        return reading.category == 'Epistle';
+      });
+
+      const gospel = theme.readings.filter((reading) => {
+        return reading.category == 'Gospel';
+      });
+
+      // create a copy of all the readings
+      readings = {
+        historical: historical,
+        prophetical: prophetical,
+        epistle: epistle,
+        gospel: gospel,
+      };
+    } else {
+      readings = undefined;
+    }
+
+    res.status(200).json({
+      status: 'success',
+      requestedAt: req.requestTime,
+      data: readings,
+    });
+  } catch (err) {
+    next(err);
   }
-
-  let readings;
-
-  if (theme.readings.length > 0) {
-    const historical = theme.readings.filter((reading) => {
-      return reading.category == 'Historical';
-    });
-
-    const prophetical = theme.readings.filter((reading) => {
-      return reading.category == 'Prophetical';
-    });
-
-    const epistle = theme.readings.filter((reading) => {
-      return reading.category == 'Epistle';
-    });
-
-    const gospel = theme.readings.filter((reading) => {
-      return reading.category == 'Gospel';
-    });
-
-    // create a copy of all the readings
-    readings = {
-      historical: historical,
-      prophetical: prophetical,
-      epistle: epistle,
-      gospel: gospel,
-    };
-  } else {
-    readings = undefined;
-  }
-
-  res.status(200).json({
-    status: 'success',
-    requestedAt: req.requestTime,
-    results: readings.length,
-    data: {
-      readings,
-    },
-  });
-});
+};
 
 exports.checkPasscode = catchAsync(async (req, res, next) => {
   const themeId = req.params.themeId;
@@ -90,7 +87,7 @@ exports.checkPasscode = catchAsync(async (req, res, next) => {
 
   const theme = await Theme.findById(themeId);
   if (!theme) {
-    return next(new AppError('No tour found with that ID', 404));
+    return next(new AppError('No theme found with that ID', 404));
   }
 
   if (theme.passcode !== passcode) {

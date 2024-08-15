@@ -41,6 +41,12 @@ const themeSchema = new Schema({
       },
     },
   ],
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  imageUrl: String,
 });
 
 module.exports = mongoose.model('Theme', themeSchema);

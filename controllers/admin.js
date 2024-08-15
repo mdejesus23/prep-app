@@ -2,6 +2,34 @@ const Theme = require('../models/themes');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
+exports.themes = async (req, res, next) => {
+  const page = req.query.page * 1 || 1; // if there is no query parameter the default value will be 1.
+  let totalItems;
+
+  const numThemes = await Theme.find({ userId: req.user._id }).countDocuments(); // Count all documents in the "Product" collection
+  totalItems = numThemes; // total number of documents fetched in the database.
+
+  const themes = await Theme.find({ userId: req.user._id })
+    .skip((page - 1) * ITEMS_PER_PAGE) // Skip the previous pages with the items per page.
+    .limit(ITEMS_PER_PAGE); // Limit the result to the current page's items
+
+  res.status(200).json({
+    status: 'success',
+    results: themes.length,
+    data: {
+      themes,
+    },
+    pagination: {
+      currentPage: page,
+      hasNextPage: ITEMS_PER_PAGE * page < totalItems, // true if the number of docs fetch is greater than ITEMS_PER_PAGE * page.
+      hasPreviousPage: page > 1, // true if current page is greater than 1
+      nextPage: page + 1,
+      previousPage: page - 1,
+      lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE), //  Math.ceil() increase
+    },
+  });
+};
+
 exports.createTheme = catchAsync(async (req, res, next) => {
   const title = req.body.title;
   const description = req.body.description;
@@ -31,7 +59,7 @@ exports.updateTheme = catchAsync(async (req, res) => {
   const existingTheme = await Theme.findById(themeId);
 
   if (!existingTheme) {
-    return next(new AppError('No tour found with that ID', 404));
+    return next(new AppError('No theme found with that ID', 404));
   }
 
   const {

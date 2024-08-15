@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 const preparationController = require('../controllers/preparation');
+const authController = require('../controllers/auth');
 
-router.get('/', preparationController.getAllThemes);
+router.get('/', authController.protect, preparationController.getAllThemes);
 
 router
   .route('/readings/:themeId')

@@ -1,20 +1,16 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
-
-// const Theme = require("./themes");
-
 const Schema = mongoose.Schema;
+const validator = require('validator');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new Schema({
   email: {
     type: String,
     required: [true, 'A User must have an email.'],
     unique: true,
-    trim: true,
-  },
-  password: {
-    type: String,
-    required: [true, 'A User must have a password.'],
-    trim: true,
+    lowercase: true,
+    validate: [validator.isEmail, 'Please provide a valid email'],
   },
   username: {
     type: String,
@@ -22,8 +18,28 @@ const userSchema = new Schema({
     unique: true,
     trim: true,
   },
-  resetToken: String,
-  resetTokenExpiration: String,
+  photo: String,
+  password: {
+    type: String,
+    required: [true, 'A User must have a password.'],
+    minlength: 8,
+    trim: true,
+    select: false,
+  },
+  confirmPassword: {
+    type: String,
+    required: [true, 'Please confirm your password'],
+    validate: {
+      // This only works on CREATE and SAVE!!!
+      validator: function (el) {
+        return el === this.password;
+      },
+      message: 'Passwords are not the same!',
+    },
+  },
+  passwordResetToken: String,
+  passwordResetExpires: Date,
+  passwordChangedAt: Date,
   votedReadings: [
     {
       readingId: {
@@ -36,7 +52,47 @@ const userSchema = new Schema({
       },
     },
   ],
+  active: {
+    type: Boolean,
+    default: true,
+    select: false,
+  },
 });
+
+// methods for hashing password
+userSchema.pre('save', async function (next) {
+  // Only run this function if password was actually modified
+  // When Mongoose sets the password field for the first time, it considers this a modification, even though it's an initial value.
+  if (!this.isModified('password')) return next();
+
+  // Hash the password with cost of 12
+  this.password = await bcrypt.hash(this.password, 12);
+
+  // Delete confirmPassword field
+  this.confirmPassword = undefined;
+  next();
+});
+
+userSchema.pre('save', function (next) {
+  // if the passowrd field hasn't been modified and new document only dont proceed.
+  if (!this.isModified('password') || this.isNew) return next();
+
+  this.passwordChangedAt = Date.now() - 1000;
+  next();
+});
+
+userSchema.pre(/^find/, function (next) {
+  // this points to the current query
+  this.find({ active: { $ne: false } });
+  next();
+});
+
+userSchema.methods.correctPassword = async function (
+  candidatePassword,
+  userPassword
+) {
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
 userSchema.methods.voteReading = function (reading) {
   const updatedVotedReading = [...this.votedReadings];
@@ -45,6 +101,7 @@ userSchema.methods.voteReading = function (reading) {
     return vr.readingId.toString() === reading._id.toString();
   });
 
+  // if already voted the reading, unvote.
   if (existingReading) {
     const filterReadings = updatedVotedReading.filter((vr) => {
       return vr.readingId.toString() !== reading._id.toString();
@@ -72,6 +129,35 @@ userSchema.virtual('votedReadingIds').get(function () {
 
 // Use toJSON method to include virtuals when converting to JSON
 userSchema.set('toJSON', { virtuals: true });
+
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimesstamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+
+    return JWTTimestamp < changedTimesstamp; // 100 < 200
+  }
+
+  // false means NOT changed
+  return false;
+};
+
+userSchema.methods.createPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  console.log({ resetToken }, this.passwordResetToken);
+
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
+};
 
 // module.exports = mongoose.model("User", userSchema);
 const User = mongoose.model('User', userSchema);

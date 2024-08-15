@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
@@ -43,15 +43,15 @@ const resultSchema = new Schema({
     type: String,
     required: true,
   },
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
   createdAt: {
     type: Date,
     default: Date.now, // This sets the default value to the current date and time
   },
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
 });
 
-module.exports = mongoose.model("Result", resultSchema);
+module.exports = mongoose.model('Result', resultSchema);
