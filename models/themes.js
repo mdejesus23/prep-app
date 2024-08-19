@@ -22,25 +22,10 @@ const themeSchema = new Schema({
     trim: true,
     maxLength: [
       10,
-      'A theme passcode must have less or equal then 10 characters.',
+      'A theme passcode must have less or equal than 10 characters.',
     ],
   },
-  readings: [
-    {
-      reading: {
-        type: String,
-        required: true,
-      },
-      category: {
-        type: String,
-        required: true,
-      },
-      voteCount: {
-        type: Number,
-        required: true,
-      },
-    },
-  ],
+  // Parent referencing. One to many - One User to Many themes.
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',

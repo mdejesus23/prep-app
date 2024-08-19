@@ -1,12 +1,15 @@
 const Theme = require('../models/themes');
+const Reading = require('../models/readings');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
-exports.themes = async (req, res, next) => {
+const ITEMS_PER_PAGE = 5;
+
+exports.themes = catchAsync(async (req, res, next) => {
   const page = req.query.page * 1 || 1; // if there is no query parameter the default value will be 1.
   let totalItems;
 
-  const numThemes = await Theme.find({ userId: req.user._id }).countDocuments(); // Count all documents in the "Product" collection
+  const numThemes = await Theme.find({ userId: req.user.id }).countDocuments(); // Count all documents in the "Product" collection
   totalItems = numThemes; // total number of documents fetched in the database.
 
   const themes = await Theme.find({ userId: req.user._id })
@@ -28,20 +31,18 @@ exports.themes = async (req, res, next) => {
       lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE), //  Math.ceil() increase
     },
   });
-};
+});
 
 exports.createTheme = catchAsync(async (req, res, next) => {
   const title = req.body.title;
   const description = req.body.description;
   const passcode = req.body.passcode;
-  const readings = [];
 
   const theme = new Theme({
     title: title,
     description: description,
     passcode: passcode,
-    readings: readings,
-    //   userId: req.session.user,
+    userId: req.user.id,
   });
 
   const newTheme = await theme.save();
@@ -87,54 +88,65 @@ exports.deleteTheme = catchAsync(async (req, res, next) => {
   }
 
   await Theme.deleteOne({ _id: themeId });
-  res.status(200).json({ message: 'Theme successfully deleted!' });
+  res
+    .status(200)
+    .json({ status: 'success', message: 'Theme successfully deleted!' });
+});
+
+exports.readings = catchAsync(async (req, res, next) => {
+  const themeId = req.params.themeId;
+
+  const theme = await Theme.findById(themeId);
+  if (!theme) {
+    return next(new AppError('No theme found with that ID', 404));
+  }
+
+  const readings = await Reading.find({ themeId: themeId });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      themeTitle: theme.title,
+      readings,
+    },
+  });
 });
 
 exports.addReading = catchAsync(async (req, res, next) => {
   const themeId = req.params.themeId;
 
-  const word = req.body.reading;
-  const category = req.body.category;
-  let initialVote = 0;
-
-  if (!word) {
-    return next(new AppError('Reading is not valid.', 404));
-  }
-
-  if (!category) {
-    return next(new AppError('Category is not valid.', 404));
-  }
-
   const theme = await Theme.findById(themeId);
+  if (!theme) {
+    return next(new AppError('No theme found with that ID', 404));
+  }
 
-  theme.readings.push({
-    reading: word,
-    category: category,
-    voteCount: initialVote,
+  const reading = new Reading({
+    reading: req.body.reading,
+    category: req.body.category,
+    voteCount: 0,
+    themeId: theme.id,
   });
 
-  await theme.save();
-  res.status(200).json({ message: 'Reading added successfuly!' });
+  await reading.save();
+  res.status(200).json({
+    status: 'success',
+    data: {
+      reading,
+    },
+  });
 });
 
 exports.deleteReading = catchAsync(async (req, res, next) => {
-  const themeId = req.params.themeId;
   const readingId = req.params.readingId;
 
-  const theme = await Theme.findById(themeId);
-
-  if (!theme) {
-    return next(new AppError('No theme found with that ID.', 404));
+  const reading = await Reading.findById(readingId);
+  if (!reading) {
+    return next(new AppError('No reading found with that ID', 404));
   }
 
-  // need to assign to a new variable to get the return result thru filter method.
-  const updatedReadings = theme.readings.filter((reading) => {
-    return reading._id.toString() !== readingId.toString();
-  });
+  await Reading.deleteOne({ _id: readingId });
 
-  theme.readings = updatedReadings;
-  await theme.save();
-  res.status(200).json({ message: 'Success deleting reading' });
+  res.status(200).json({ status: 'success' });
 });
 
 exports.resetVotes = catchAsync(async (req, res, next) => {
