@@ -17,6 +17,11 @@ const readingsSchema = new Schema({
     ref: 'Theme',
     required: true,
   },
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
 });
 
 module.exports = mongoose.model('Reading', readingsSchema);

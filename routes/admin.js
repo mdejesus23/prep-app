@@ -23,13 +23,13 @@ router.delete(
 router.get(
   '/theme/:themeId/readings',
   authController.protect,
-  adminController.readings
+  adminController.getThemesWithReadings
 );
 
 router.post(
   '/theme/:themeId/addReading',
   authController.protect,
-  adminController.addReading
+  adminController.addReadingToTheme
 );
 
 router.delete(
@@ -39,9 +39,20 @@ router.delete(
 );
 
 router.post(
-  '/theme/votes/:themeId',
+  '/theme/:themeId/resetVotes',
   authController.protect,
   adminController.resetVotes
+);
+
+router
+  .route('/prepResults')
+  .get(authController.protect, adminController.preparationResults)
+  .post(authController.protect, adminController.addpreparationResult);
+
+router.delete(
+  '/result/:resultId',
+  authController.protect,
+  adminController.deleteResult
 );
 
 module.exports = router;

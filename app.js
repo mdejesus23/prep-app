@@ -5,13 +5,14 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
+const cookieParser = require('cookie-parser');
+require('dotenv').config();
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const preparationRouter = require('./routes/preparation');
 const adminRouter = require('./routes/admin');
 const authRouter = require('./routes/auth');
-require('dotenv').config();
 
 const app = express();
 
@@ -31,6 +32,9 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again in an hour.',
 });
 app.use('/api', limiter);
+
+// Use cookie-parser middleware
+app.use(cookieParser());
 
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' }));

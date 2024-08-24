@@ -10,6 +10,8 @@ router.post('/login', authController.login);
 router.post('/forgotPassword', authController.forgotPassword);
 // patch for manipulating a document
 router.patch('/resetPassword/:token', authController.resetPassword);
+
+// needs to authenticate user before updating user info.
 router.patch(
   '/updateMyPassword',
   authController.protect,

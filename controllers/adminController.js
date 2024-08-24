@@ -1,5 +1,7 @@
 const Theme = require('../models/themes');
 const Reading = require('../models/readings');
+const Result = require('../models/result');
+const User = require('../models/user');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
@@ -29,6 +31,27 @@ exports.themes = catchAsync(async (req, res, next) => {
       nextPage: page + 1,
       previousPage: page - 1,
       lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE), //  Math.ceil() increase
+    },
+  });
+});
+
+exports.getThemesWithReadings = catchAsync(async (req, res, next) => {
+  const themeId = req.params.themeId;
+
+  // const theme = await Theme.findById(themeId);
+
+  // const themesReadings = await Reading.find({ themeId: themeId });
+
+  // Fetch the theme and populate the readingIds field with Reading documents
+  const themesWithReadings = await Theme.findOne({
+    _id: themeId,
+    userId: req.user.id,
+  }).populate('readings');
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      themesWithReadings,
     },
   });
 });
@@ -87,66 +110,77 @@ exports.deleteTheme = catchAsync(async (req, res, next) => {
     return next(new AppError('No theme found with that ID', 404));
   }
 
+  // Delete all associated readings
+  await Reading.deleteMany({ themeId: themeId });
+
+  // Delete the theme
   await Theme.deleteOne({ _id: themeId });
+
   res
     .status(200)
     .json({ status: 'success', message: 'Theme successfully deleted!' });
 });
 
-exports.readings = catchAsync(async (req, res, next) => {
+exports.addReadingToTheme = catchAsync(async (req, res, next) => {
   const themeId = req.params.themeId;
+  const userId = req.user.id;
 
-  const theme = await Theme.findById(themeId);
+  const theme = await Theme.findOne({ _id: themeId, userId: userId });
   if (!theme) {
-    return next(new AppError('No theme found with that ID', 404));
+    return next(
+      new AppError(
+        'No theme found with that ID or you dont have permision to add reading to that theme.',
+        404
+      )
+    );
   }
 
-  const readings = await Reading.find({ themeId: themeId });
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      themeTitle: theme.title,
-      readings,
-    },
-  });
-});
-
-exports.addReading = catchAsync(async (req, res, next) => {
-  const themeId = req.params.themeId;
-
-  const theme = await Theme.findById(themeId);
-  if (!theme) {
-    return next(new AppError('No theme found with that ID', 404));
-  }
-
-  const reading = new Reading({
+  const newReading = new Reading({
     reading: req.body.reading,
     category: req.body.category,
     voteCount: 0,
     themeId: theme.id,
+    userId,
   });
+  const savedReading = await newReading.save();
 
-  await reading.save();
+  // Update the Theme document to include the new Reading's ID
+  await Theme.findByIdAndUpdate(
+    themeId,
+    { $push: { readingIds: savedReading._id } },
+    { new: true } // Return the updated Theme document
+  );
+
   res.status(200).json({
     status: 'success',
     data: {
-      reading,
+      savedReading,
     },
   });
 });
 
 exports.deleteReading = catchAsync(async (req, res, next) => {
   const readingId = req.params.readingId;
+  const userId = req.user.id;
 
-  const reading = await Reading.findById(readingId);
-  if (!reading) {
-    return next(new AppError('No reading found with that ID', 404));
+  // Find and delete the result
+  const preparationReading = await Reading.findOneAndDelete({
+    _id: readingId,
+    userId,
+  });
+
+  if (!preparationReading) {
+    return next(
+      new AppError(
+        'Preparation reading not found or not authorized to delete.',
+        404
+      )
+    );
   }
 
-  await Reading.deleteOne({ _id: readingId });
-
-  res.status(200).json({ status: 'success' });
+  res
+    .status(200)
+    .json({ status: 'success', message: 'Reading has been deleted.' });
 });
 
 exports.resetVotes = catchAsync(async (req, res, next) => {
@@ -157,18 +191,106 @@ exports.resetVotes = catchAsync(async (req, res, next) => {
     return next(new AppError('No theme found with that ID.', 404));
   }
 
-  const updatedReadings = theme.readings.map((reading) => {
-    return {
-      ...reading,
-      voteCount: 0,
-    };
-  });
+  // Find all readings associated with the specified themeId
+  const readings = await Reading.find({ themeId: themeId });
+  if (readings.length === 0) {
+    return next(
+      new AppError('No readings found for the specified theme ID', 404)
+    );
+  }
 
-  theme.readings = updatedReadings;
-  await theme.save();
+  // Update all readings to set voteCount to 0
+  await Reading.updateMany({ themeId: themeId }, { $set: { voteCount: 0 } });
 
   res.status(200).json({
-    message: 'Votes reset successfully',
-    data: theme,
+    status: 'success',
+    data: {
+      theme,
+    },
+  });
+});
+
+exports.preparationResults = catchAsync(async (req, res, next) => {
+  const prepResults = await Result.find({ userId: req.user.id });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      prepResults,
+    },
+  });
+});
+
+exports.addpreparationResult = catchAsync(async (req, res, next) => {
+  const {
+    themeTitle,
+    entranceSong,
+    firstReading,
+    firstPsalm,
+    secondReading,
+    secondPsalm,
+    thirdReading,
+    thirdPsalm,
+    gospelReading,
+    finalSong,
+  } = req.body;
+
+  const preparationResult = new Result({
+    title: themeTitle,
+    entranceSong,
+    firstReading,
+    firstPsalm,
+    secondReading,
+    secondPsalm,
+    thirdReading,
+    thirdPsalm,
+    gospel: gospelReading,
+    finalSong,
+    userId: req.user._id,
+  });
+
+  const result = await preparationResult.save();
+
+  // reset user votedReadings record
+  await User.findByIdAndUpdate(
+    req.user.id,
+    { votedReadings: [] },
+    {
+      new: true, // Returns the updated document
+      runValidators: false, // Avoid running validators
+    }
+  );
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      result,
+    },
+  });
+});
+
+exports.deleteResult = catchAsync(async (req, res, next) => {
+  const resultId = req.params.resultId;
+  const userId = req.user.id;
+
+  // Find and delete the result
+  const result = await Result.findOneAndDelete({
+    _id: resultId,
+    userId: userId,
+  });
+
+  // Check if the result was found and deleted
+  if (!result) {
+    return next(
+      new AppError(
+        'Preparation result not found or not authorized to delete.',
+        404
+      )
+    );
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Preparation result deleted successfully.',
   });
 });

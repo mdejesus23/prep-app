@@ -43,7 +43,7 @@ const userSchema = new Schema({
   votedReadings: [
     {
       readingId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         required: true,
       },
       reading: {
@@ -94,30 +94,34 @@ userSchema.methods.correctPassword = async function (
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-userSchema.methods.voteReading = function (reading) {
-  const updatedVotedReading = [...this.votedReadings];
-
+userSchema.methods.voteReading = async function (reading) {
   const existingReading = this.votedReadings.find((vr) => {
     return vr.readingId.toString() === reading._id.toString();
   });
 
-  // if already voted the reading, unvote.
-  if (existingReading) {
-    const filterReadings = updatedVotedReading.filter((vr) => {
-      return vr.readingId.toString() !== reading._id.toString();
-    });
+  let updateQuery;
 
-    this.votedReadings = filterReadings;
-    return this.save();
+  if (existingReading) {
+    // If the reading exists, remove it (unvote)
+    updateQuery = {
+      $pull: { votedReadings: { readingId: reading._id } },
+    };
+  } else {
+    // If the reading does not exist, add it (vote)
+    updateQuery = {
+      $push: {
+        votedReadings: {
+          readingId: reading._id,
+          reading: reading.reading,
+        },
+      },
+    };
   }
 
-  updatedVotedReading.push({
-    readingId: reading._id,
-    reading: reading.reading,
-  });
+  await this.updateOne(updateQuery, { runValidators: false });
 
-  this.votedReadings = updatedVotedReading;
-  return this.save();
+  // Return the updated user document
+  return this;
 };
 
 // Define a virtual property to get an array of readingIds as strings

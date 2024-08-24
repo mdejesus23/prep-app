@@ -29,7 +29,7 @@ const createSendToken = (user, statusCode, res) => {
   user.password = undefined;
 
   res.status(statusCode).json({
-    message: 'success',
+    status: 'success',
     token,
     data: {
       user,

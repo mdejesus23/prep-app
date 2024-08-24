@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const app = require('./app');
-
 require('dotenv').config();
 
 console.log('NODE_ENV', process.env.NODE_ENV);

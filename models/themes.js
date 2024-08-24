@@ -9,9 +9,6 @@ const themeSchema = new Schema({
     unique: true,
     trim: true,
   },
-  imageName: {
-    type: String,
-  },
   description: {
     type: String,
     required: [true, 'A Theme must have a description.'],
@@ -25,7 +22,6 @@ const themeSchema = new Schema({
       'A theme passcode must have less or equal than 10 characters.',
     ],
   },
-  // Parent referencing. One to many - One User to Many themes.
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -33,5 +29,15 @@ const themeSchema = new Schema({
   },
   imageUrl: String,
 });
+
+// Virtual populate to avoid array child referencing.
+themeSchema.virtual('readings', {
+  ref: 'Reading',
+  foreignField: 'themeId',
+  localField: '_id',
+});
+
+themeSchema.set('toJSON', { virtuals: true });
+themeSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Theme', themeSchema);
