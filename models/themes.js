@@ -30,6 +30,8 @@ const themeSchema = new Schema({
   imageUrl: String,
 });
 
+themeSchema.index({ title: 1 });
+
 // Virtual populate to avoid array child referencing.
 themeSchema.virtual('readings', {
   ref: 'Reading',

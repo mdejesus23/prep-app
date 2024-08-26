@@ -99,6 +99,7 @@ userSchema.methods.voteReading = async function (reading) {
     return vr.readingId.toString() === reading._id.toString();
   });
 
+  let hasVoted;
   let updateQuery;
 
   if (existingReading) {
@@ -106,6 +107,7 @@ userSchema.methods.voteReading = async function (reading) {
     updateQuery = {
       $pull: { votedReadings: { readingId: reading._id } },
     };
+    hasVoted = false; // The user is unvoting
   } else {
     // If the reading does not exist, add it (vote)
     updateQuery = {
@@ -116,12 +118,13 @@ userSchema.methods.voteReading = async function (reading) {
         },
       },
     };
+    hasVoted = true; // The user has voted
   }
 
   await this.updateOne(updateQuery, { runValidators: false });
 
-  // Return the updated user document
-  return this;
+  // Return the flag indicating the action performed
+  return hasVoted;
 };
 
 // Define a virtual property to get an array of readingIds as strings

@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -10,9 +11,11 @@ require('dotenv').config();
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
-const preparationRouter = require('./routes/preparation');
-const adminRouter = require('./routes/admin');
-const authRouter = require('./routes/auth');
+const preparationRouter = require('./routes/preparationRoutes');
+const userRouter = require('./routes/userRoutes');
+const adminRouter = require('./routes/adminRoutes');
+const readingRouter = require('./routes/readingRoutes');
+const resultRouter = require('./routes/resultRoutes');
 
 const app = express();
 
@@ -33,11 +36,9 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Use cookie-parser middleware
-app.use(cookieParser());
-
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
 
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
@@ -49,7 +50,8 @@ app.use(xss());
 app.use(hpp());
 
 // Serving static files
-app.use(express.static(`${__dirname}/public`));
+// app.use(express.static(`${__dirname}/public`));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Test middleware
 app.use((req, res, next) => {
@@ -59,9 +61,11 @@ app.use((req, res, next) => {
 });
 
 // 3) ROUTES
-app.use('/api/v1/themes', preparationRouter);
+app.use('/api/v1/preparation', preparationRouter);
+app.use('/api/v1/users', userRouter);
+app.use('/api/v1/readings', readingRouter);
 app.use('/api/v1/admin', adminRouter);
-app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/results', resultRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

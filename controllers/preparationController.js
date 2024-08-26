@@ -1,5 +1,6 @@
 const Theme = require('../models/themes');
 const Reading = require('../models/readings');
+const factory = require('./handlerFactory');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 require('dotenv').config();
@@ -26,30 +27,16 @@ const createSendThemeId = (themeWithReadings, statusCode, res) => {
   });
 };
 
+// exports.getAllThemes = factory.getAll(Theme);
+
 exports.getAllThemes = catchAsync(async (req, res, next) => {
-  const page = req.query.page * 1 || 1; // if there is no query parameter the default value will be 1.
-  let totalItems;
-
-  const numThemes = await Theme.find().countDocuments(); // Count all documents in the "Product" collection
-  totalItems = numThemes; // total number of documents fetched in the database.
-
-  const themes = await Theme.find()
-    .skip((page - 1) * ITEMS_PER_PAGE) // Skip the previous pages with the items per page.
-    .limit(ITEMS_PER_PAGE); // Limit the result to the current page's items
+  const themes = await Theme.find();
 
   res.status(200).json({
     status: 'success',
     results: themes.length,
     data: {
       themes,
-    },
-    pagination: {
-      currentPage: page,
-      hasNextPage: ITEMS_PER_PAGE * page < totalItems, // true if the number of docs fetch is greater than ITEMS_PER_PAGE * page.
-      hasPreviousPage: page > 1, // true if current page is greater than 1
-      nextPage: page + 1,
-      previousPage: page - 1,
-      lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE), //  Math.ceil() increase
     },
   });
 });
@@ -73,8 +60,6 @@ exports.themeWithReadings = catchAsync(async (req, res, next) => {
     select: '-__v -voteCount',
   });
 
-  console.log(themeWithReadings);
-
   createSendThemeId(themeWithReadings, 200, res);
 });
 
@@ -86,18 +71,21 @@ exports.voteReading = catchAsync(async (req, res, next) => {
     return next(new AppError('Reading not found.', 404));
   }
 
-  const user = await req.user.voteReading(reading);
+  // Call the voteReading method and get the result
+  const hasVoted = await req.user.voteReading(reading);
 
   let message;
-  // add/minus vote count in the reading collection
-  if (user.votedReadingIds.includes(readingId)) {
+  if (hasVoted) {
+    // If the user voted, increment the vote count
     reading.voteCount += 1;
     message = 'Vote counted!';
   } else {
+    // If the user unvoted, decrement the vote count
     reading.voteCount -= 1;
     message = 'Unvote counted!';
   }
 
+  // to prevent negative values on the reading vote count.
   if (reading.voteCount < 0) {
     reading.voteCount = 0;
   }
