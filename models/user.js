@@ -59,7 +59,7 @@ const userSchema = new Schema({
   },
 });
 
-// methods for hashing password
+// methods for hashing password. Document middleware
 userSchema.pre('save', async function (next) {
   // Only run this function if password was actually modified
   // When Mongoose sets the password field for the first time, it considers this a modification, even though it's an initial value.
@@ -81,6 +81,7 @@ userSchema.pre('save', function (next) {
   next();
 });
 
+// quer middleware
 userSchema.pre(/^find/, function (next) {
   // this points to the current query
   this.find({ active: { $ne: false } });

@@ -3,6 +3,7 @@ const Theme = require('../models/themes');
 const User = require('../models/user');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+const APIFeatures = require('../utils/apiFeatures');
 
 exports.deleteOne = (Model) =>
   catchAsync(async (req, res, next) => {
@@ -91,9 +92,21 @@ exports.getOne = (Model, popOptions) =>
     });
   });
 
-exports.getAll = (Model) =>
+exports.getAll = (Model, allUserHasAccess = false) =>
   catchAsync(async (req, res, next) => {
-    const doc = await Model.find({ userId: req.user.id });
+    let filter = {};
+
+    if (!allUserHasAccess) {
+      filter = { userId: req.user.id };
+    } else {
+      filter = {};
+    }
+
+    const features = new APIFeatures(Model.find(filter), req.query)
+      .sort()
+      .paginate();
+
+    const doc = await features.query;
 
     if (!doc) {
       return next(new AppError('No document found with that ID', 404));

@@ -5,7 +5,8 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 require('dotenv').config();
 
-const ITEMS_PER_PAGE = 5;
+// All user has access to preparation themes.
+const allUserHasAccess = true;
 
 const createSendThemeId = (themeWithReadings, statusCode, res) => {
   const themeId = themeWithReadings._id;
@@ -27,19 +28,7 @@ const createSendThemeId = (themeWithReadings, statusCode, res) => {
   });
 };
 
-// exports.getAllThemes = factory.getAll(Theme);
-
-exports.getAllThemes = catchAsync(async (req, res, next) => {
-  const themes = await Theme.find();
-
-  res.status(200).json({
-    status: 'success',
-    results: themes.length,
-    data: {
-      themes,
-    },
-  });
-});
+exports.getAllThemes = factory.getAll(Theme, allUserHasAccess);
 
 exports.themeWithReadings = catchAsync(async (req, res, next) => {
   const themeId = req.params.themeId;

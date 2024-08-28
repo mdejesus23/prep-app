@@ -50,7 +50,6 @@ app.use(xss());
 app.use(hpp());
 
 // Serving static files
-// app.use(express.static(`${__dirname}/public`));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Test middleware
