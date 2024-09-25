@@ -7,6 +7,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
+const cors = require('cors');
 require('dotenv').config();
 
 const AppError = require('./utils/appError');
@@ -20,6 +21,12 @@ const resultRouter = require('./routes/resultRoutes');
 const app = express();
 
 // 1) GLOBAL MIDDLEWARES
+// implement CORS
+app.use(cors());
+
+// Serving static files
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Set security HTTP headers
 app.use(helmet());
 
@@ -48,9 +55,6 @@ app.use(xss());
 
 // Prevent parameter pollution.
 app.use(hpp());
-
-// Serving static files
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Test middleware
 app.use((req, res, next) => {

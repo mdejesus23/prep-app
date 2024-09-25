@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const slugify = require('slugify');
 
 const Schema = mongoose.Schema;
 
@@ -11,6 +12,7 @@ const themeSchema = new Schema(
       unique: true,
       trim: true,
     },
+    slug: String,
     description: {
       type: String,
       required: [true, 'A Theme must have a description.'],
@@ -49,6 +51,12 @@ themeSchema.virtual('readings', {
   ref: 'Reading',
   foreignField: 'themeId',
   localField: '_id',
+});
+
+// DOCUMENT MIDDLEWARE: runs before .save() and .create()
+themeSchema.pre('save', function (next) {
+  this.slug = slugify(this.title, { lower: true });
+  next();
 });
 
 module.exports = mongoose.model('Theme', themeSchema);
