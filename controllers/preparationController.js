@@ -14,23 +14,49 @@ const createSendThemeId = (themeWithReadings, statusCode, res) => {
   const cookieOptions = {
     expires: new Date(now.getTime() + 24 * 60 * 60 * 1000),
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
   };
-  if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
+  // if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
 
   res.cookie('themeId', themeId, cookieOptions);
 
   res.status(statusCode).json({
     status: 'success',
     themeId,
-    data: {
-      themeWithReadings,
-    },
+    themeWithReadings,
   });
 };
 
 exports.getAllThemes = factory.getAll(Theme, allUserHasAccess);
 
-exports.themeWithReadings = catchAsync(async (req, res, next) => {
+exports.getThemeWithReadings = catchAsync(async (req, res, next) => {
+  const slug = req.params.slug;
+  const passcode = req.body.passcode;
+
+  const theme = await Theme.findOne({ slug });
+  if (!theme) {
+    return next(new AppError('No theme found with that ID', 404));
+  }
+
+  // if (theme.passcode !== passcode) {
+  //   return next(new AppError('Passcode does not matched.', 401));
+  // }
+
+  // Populate the readings field with Reading documents
+  const themeWithReadings = await Theme.findOne({ slug }).populate({
+    path: 'readings',
+    select: '-__v -voteCount',
+  });
+
+  // createSendThemeId(themeWithReadings, 200, res);
+
+  res.status(200).json({
+    status: 'success',
+    themeWithReadings,
+  });
+});
+
+exports.postThemeWithReadings = catchAsync(async (req, res, next) => {
   const themeId = req.params.themeId;
   const passcode = req.body.passcode;
 
@@ -46,7 +72,7 @@ exports.themeWithReadings = catchAsync(async (req, res, next) => {
   // Fetch the theme and populate the readingIds field with Reading documents
   const themeWithReadings = await Theme.findById(themeId).populate({
     path: 'readings',
-    select: '-__v -voteCount',
+    select: '-__v',
   });
 
   createSendThemeId(themeWithReadings, 200, res);
@@ -102,8 +128,6 @@ exports.themeWithReadingsWithVotes = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    data: {
-      themeWithReadings,
-    },
+    themeWithReadings,
   });
 });

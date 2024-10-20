@@ -9,7 +9,12 @@ router.use(authController.protect);
 
 router.get('/themes', preparionController.getAllThemes);
 
-router.get('/themes/:themeId/readings', preparionController.themeWithReadings);
+router.get('/themes/:slug/readings', preparionController.getThemeWithReadings);
+
+router.post(
+  '/themes/:themeId/readings',
+  preparionController.postThemeWithReadings
+);
 
 router.post('/vote-reading/:readingId', preparionController.voteReading);
 

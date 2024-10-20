@@ -22,7 +22,13 @@ const app = express();
 
 // 1) GLOBAL MIDDLEWARES
 // implement CORS
-app.use(cors());
+// app.use(cors());
+app.use(
+  cors({
+    origin: 'http://localhost:5173', // Your React frontend URL
+    credentials: true, // Allow cookies to be sent/received
+  })
+);
 
 // Serving static files
 app.use(express.static(path.join(__dirname, 'public')));

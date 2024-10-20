@@ -3,7 +3,7 @@ const { promisify } = require('util');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const AppError = require('../utils/appError');
-const sendEmail = require('../utils/email');
+const sendEmail = require('../utils/emailv2');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -20,9 +20,9 @@ const createSendToken = (user, statusCode, res) => {
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
+    sameSite: 'strict', // This enables cross-site cookies
+    secure: process.env.NODE_ENV === 'production',
   };
-  if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
-
   res.cookie('jwt', token, cookieOptions);
 
   // Remove the password from the output.
@@ -39,6 +39,7 @@ const createSendToken = (user, statusCode, res) => {
 
 exports.signup = async (req, res, next) => {
   const { email, username, password, confirmPassword } = req.body;
+  console.log(email, username, password, confirmPassword);
 
   try {
     const newUser = await User.create({
@@ -78,6 +79,7 @@ exports.login = async (req, res, next) => {
 };
 
 exports.logout = (req, res) => {
+  console.log('user logout');
   res.cookie('jwt', 'loggedout', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
@@ -86,13 +88,15 @@ exports.logout = (req, res) => {
 };
 
 exports.protect = async (req, res, next) => {
+  let token;
   try {
-    let token;
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
     ) {
       token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies.jwt) {
+      token = req.cookies.jwt;
     }
 
     if (!token) {
