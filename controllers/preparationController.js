@@ -16,7 +16,6 @@ const createSendThemeId = (themeWithReadings, statusCode, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
   };
-  // if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
 
   res.cookie('themeId', themeId, cookieOptions);
 
@@ -28,33 +27,6 @@ const createSendThemeId = (themeWithReadings, statusCode, res) => {
 };
 
 exports.getAllThemes = factory.getAll(Theme, allUserHasAccess);
-
-exports.getThemeWithReadings = catchAsync(async (req, res, next) => {
-  const slug = req.params.slug;
-  const passcode = req.body.passcode;
-
-  const theme = await Theme.findOne({ slug });
-  if (!theme) {
-    return next(new AppError('No theme found with that ID', 404));
-  }
-
-  // if (theme.passcode !== passcode) {
-  //   return next(new AppError('Passcode does not matched.', 401));
-  // }
-
-  // Populate the readings field with Reading documents
-  const themeWithReadings = await Theme.findOne({ slug }).populate({
-    path: 'readings',
-    select: '-__v -voteCount',
-  });
-
-  // createSendThemeId(themeWithReadings, 200, res);
-
-  res.status(200).json({
-    status: 'success',
-    themeWithReadings,
-  });
-});
 
 exports.postThemeWithReadings = catchAsync(async (req, res, next) => {
   const themeId = req.params.themeId;
@@ -114,11 +86,6 @@ exports.voteReading = catchAsync(async (req, res, next) => {
 
 exports.themeWithReadingsWithVotes = catchAsync(async (req, res, next) => {
   const themeId = req.params.themeId;
-  const themeIdFromCookie = req.cookies.themeId;
-
-  if (!themeIdFromCookie || themeIdFromCookie !== themeId) {
-    return next(new AppError('You do not have access in this theme', 401));
-  }
 
   // Fetch the theme and populate the readingIds field with Reading documents
   const themeWithReadings = await Theme.findById(themeId).populate({

@@ -1,9 +1,8 @@
 const crypto = require('crypto');
 const { promisify } = require('util');
-const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const AppError = require('../utils/appError');
-const sendEmail = require('../utils/emailv2');
+const Email = require('../utils/emailv2');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -39,7 +38,6 @@ const createSendToken = (user, statusCode, res) => {
 
 exports.signup = async (req, res, next) => {
   const { email, username, password, confirmPassword } = req.body;
-  console.log(email, username, password, confirmPassword);
 
   try {
     const newUser = await User.create({
@@ -48,6 +46,9 @@ exports.signup = async (req, res, next) => {
       password: password,
       confirmPassword: confirmPassword,
     });
+
+    const url = `${process.env.FRONTEND_URL}/themes`;
+    await new Email(newUser, url).sendWelcome();
 
     createSendToken(newUser, 201, res);
   } catch (err) {
@@ -79,7 +80,6 @@ exports.login = async (req, res, next) => {
 };
 
 exports.logout = (req, res) => {
-  console.log('user logout');
   res.cookie('jwt', 'loggedout', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
@@ -146,19 +146,11 @@ exports.forgotPassword = async (req, res, next) => {
     const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
-    // 3) Send it to user's email
-    const resetURL = `${req.protocol}://${req.get(
-      'host'
-    )}/api/v1/users/resetPassword/${resetToken}`;
-
-    const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ignore this email.`;
+    // 3 Send it to user's email
+    const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Your passwordd reset token (Valid for 10 min)',
-        message,
-      });
+      await new Email(user, resetURL).sendPasswordReset();
 
       res.status(200).json({
         status: 'success',

@@ -8,5 +8,3 @@ exports.createTheme = factory.createOne(Theme);
 exports.updateTheme = factory.updateOne(Theme);
 
 exports.deleteTheme = factory.deleteOne(Theme);
-
-console.log(__dirname);

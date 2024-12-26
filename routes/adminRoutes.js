@@ -10,6 +10,7 @@ const readingRouter = require('./readingRoutes');
 router.use(authController.protect);
 
 router.use('/themes/:themeId/readings', readingRouter);
+// router.use('/themes/:slug/readings', readingRouter);
 
 router
   .route('/themes')

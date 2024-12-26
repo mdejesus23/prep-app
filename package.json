@@ -6,13 +6,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js",
-    "start:prod": "SET NODE_ENV=production & nodemon server.js",
+    "start:prod": "NODE_ENV=production node server.js",
     "debug": "ndb server.js"
   },
   "author": "Melnard",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "compression": "^1.7.5",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

@@ -1,10 +1,11 @@
 const nodemailer = require('nodemailer');
-const htmlToText = require('html-to-text');
+const { convert } = require('html-to-text');
 require('dotenv').config();
 
 module.exports = class Email {
   constructor(user, url) {
     this.to = user.email;
+    this.firstName = user.username.split(' ')[0];
     this.url = url;
     this.from = `Preparation App <${process.env.EMAIL_FROM}>`;
   }
@@ -12,7 +13,13 @@ module.exports = class Email {
   newTransport() {
     if (process.env.NODE_ENV === 'production') {
       // Sendgrid
-      return 1;
+      return nodemailer.createTransport({
+        service: 'SendGrid',
+        auth: {
+          user: process.env.SENDGRID_USERNAME,
+          pass: process.env.SENDGRID_PASSWORD,
+        },
+      });
     }
 
     return nodemailer.createTransport({
@@ -25,30 +32,45 @@ module.exports = class Email {
     });
   }
 
-  async send(purpose, subject) {
-    // 1) Render HTML
+  // Send the actual email
+  async send(template, subject) {
+    // 1) Render HTML based on a pug template
+    // 1) Define simple inline HTML
     let html;
-    if (purpose === 'welcome') {
-      html = '<h1>You successfully signed up in the Preparation app.</h1>';
-    } else if (purpose === 'reset') {
+
+    // Define HTML content based on the template
+    if (template === 'welcome') {
       html = `
-      <h1>Preparation App Password Resetting</h1>
-      <p>You requested password reset</p>
-      <p>Click this <a href=${
-        process.env.NODE_ENV === 'development'
-          ? `http://localhost:5173/reset-password/${token}`
-          : `https://preparation-app.onrender.com/reset/${token}`
-      }>link</a> to set a new password</p>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h1 style="color: #007bff;">Hello, ${this.firstName}!</h1>
+          <p>Welcome to the Preparation App. We're excited to have you on board!</p>
+          <p>Please click the link below to get started:</p>
+          <a href="${this.url}" target="_blank" style="color: #007bff; text-decoration: none;">Get Started</a>
+          <p>If you have any questions, feel free to reach out to us at any time.</p>
+          <p>Best regards,<br>The Preparation App Team</p>
+        </div>
       `;
+    } else if (template === 'passwordReset') {
+      html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h1 style="color: #007bff;">Hello, ${this.firstName}!</h1>
+          <p>We received a request to reset your password. Click the link below to set a new password:</p>
+          <a href="${this.url}" target="_blank" style="color: #007bff; text-decoration: none;">Reset Password</a>
+          <p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
+          <p>Best regards,<br>The Preparation App Team</p>
+        </div>
+      `;
+    } else {
+      throw new Error('Unknown email template');
     }
 
     // 2) Define email options
     const mailOptions = {
-      from: 'Melnard De Jesus <dejesusmelnard@gmail.com>',
+      from: this.from,
       to: this.to,
       subject,
       html,
-      text: htmlToText.fromString(html),
+      text: convert(html),
     };
 
     // 3) Create a transport and send email
@@ -56,6 +78,13 @@ module.exports = class Email {
   }
 
   async sendWelcome() {
-    await this.send('welcome', 'Welcome to Preparation App');
+    await this.send('welcome', 'Welcome to the Preparation App!');
+  }
+
+  async sendPasswordReset() {
+    await this.send(
+      'passwordReset',
+      'Your password reset token (valid for 10 minutes)'
+    );
   }
 };

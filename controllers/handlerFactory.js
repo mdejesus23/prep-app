@@ -28,18 +28,23 @@ exports.deleteOne = (Model) =>
 
 exports.updateOne = (Model) =>
   catchAsync(async (req, res, next) => {
-    const doc = await Model.findOneAndUpdate(
-      {
-        _id: req.params.themeId || req.params.readingId || req.params.resultId,
-        userId: req.user.id,
-      },
-      req.body,
-      { new: true, runValidators: true }
-    );
+    // Step 1: Find the document by ID and userId
+    const doc = await Model.findOne({
+      _id: req.params.themeId || req.params.readingId || req.params.resultId,
+      userId: req.user.id,
+    });
 
     if (!doc) {
       return next(new AppError('No document found with that ID', 404));
     }
+
+    // Step 2: Update the document properties manually
+    Object.keys(req.body).forEach((key) => {
+      doc[key] = req.body[key];
+    });
+
+    // Step 3: Save the document to trigger the pre-save middleware
+    await doc.save();
 
     res.status(200).json({
       status: 'success',

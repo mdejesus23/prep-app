@@ -9,6 +9,7 @@ const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 require('dotenv').config();
+const compression = require('compression');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -62,10 +63,12 @@ app.use(xss());
 // Prevent parameter pollution.
 app.use(hpp());
 
+app.use(compression());
+
 // Test middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
-  // console.log(req.headers);
+
   next();
 });
 
