@@ -30,13 +30,14 @@ const userSchema = new Schema({
     type: String,
     required: [true, 'Please confirm your password'],
     validate: {
-      // This only works on CREATE and SAVE!!!
       validator: function (el) {
-        return el === this.password;
+        // Only validate confirmPassword if password is being modified
+        return !this.isModified('password') || el === this.password;
       },
       message: 'Passwords are not the same!',
     },
   },
+
   passwordResetToken: String,
   passwordResetExpires: Date,
   passwordChangedAt: Date,
@@ -126,6 +127,14 @@ userSchema.methods.voteReading = async function (reading) {
 
   // Return the flag indicating the action performed
   return hasVoted;
+};
+
+userSchema.methods.resetVotes = async function () {
+  // Reset the user's votedReadings field
+  this.votedReadings = [];
+
+  // Save the user document without validating other fields
+  await this.save({ validateBeforeSave: false });
 };
 
 // Define a virtual property to get an array of readingIds as strings

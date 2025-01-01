@@ -26,7 +26,7 @@ const app = express();
 // app.use(cors());
 app.use(
   cors({
-    origin: 'http://localhost:5173', // Your React frontend URL
+    origin: process.env.FRONTEND_URL, // Your React frontend URL
     credentials: true, // Allow cookies to be sent/received
   })
 );
@@ -44,7 +44,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Limit requests from same API
 const limiter = rateLimit({
-  max: 100, // adjust the limit based on you app.
+  max: 1000, // adjust the limit based on you app.
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour.',
 });

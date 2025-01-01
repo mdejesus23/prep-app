@@ -12,6 +12,11 @@ router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword); // patch for manipulating a document
 
 // needs to authenticate user before updating user info.
+router.post(
+  '/reset-votes',
+  authController.protect,
+  userController.resetUserVotes
+);
 router.patch(
   '/updateMyPassword',
   authController.protect,

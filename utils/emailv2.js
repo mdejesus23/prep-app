@@ -22,6 +22,7 @@ module.exports = class Email {
       });
     }
 
+    // use mailtrap for development
     return nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,

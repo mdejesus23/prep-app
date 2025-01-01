@@ -62,3 +62,23 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
 });
 
 exports.getUser = factory.getOne(User);
+
+exports.resetUserVotes = catchAsync(async (req, res, next) => {
+  let user;
+  // 1) Find the user by ID
+  user = await User.findById(req.user.id);
+  if (!user) {
+    return next(new AppError('No user found with that ID', 404));
+  }
+
+  // 2) Reset the user's votes using the schema method
+  await user.resetVotes();
+
+  // 3) SEND RESPONSE
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user,
+    },
+  });
+});
