@@ -73,10 +73,13 @@ exports.login = catchAsync(async (req, res, next) => {
 });
 
 exports.logout = (req, res) => {
-  res.cookie('jwt', 'loggedout', {
-    expires: new Date(Date.now() + 10 * 1000),
+  // Clear the JWT cookie by setting it with a past expiration date
+  res.clearCookie('jwt', {
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // Ensures cookie is only cleared over HTTPS in production
+    sameSite: 'none', // Matches the sameSite setting used in the login controller
   });
+
   res.status(200).json({ status: 'success' });
 };
 
