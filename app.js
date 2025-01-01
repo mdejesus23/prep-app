@@ -21,6 +21,8 @@ const resultRouter = require('./routes/resultRoutes');
 
 const app = express();
 
+app.enable('trust proxy');
+
 // 1) GLOBAL MIDDLEWARES
 // implement CORS
 // app.use(cors());
