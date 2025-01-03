@@ -20,7 +20,7 @@ const createSendToken = (user, statusCode, res) => {
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
-    sameSite: 'none', // This enables cross-site cookies
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'Lax',
     secure: process.env.NODE_ENV === 'production',
   };
   res.cookie('jwt', token, cookieOptions);
@@ -77,7 +77,7 @@ exports.logout = (req, res) => {
   res.clearCookie('jwt', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Ensures cookie is only cleared over HTTPS in production
-    sameSite: 'none', // Matches the sameSite setting used in the login controller
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'Lax',
   });
 
   res.status(200).json({ status: 'success' });
