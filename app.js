@@ -21,7 +21,9 @@ const resultRouter = require('./routes/resultRoutes');
 
 const app = express();
 
-app.enable('trust proxy');
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1); // Trust only one proxy (Render's reverse proxy)
+}
 
 // 1) GLOBAL MIDDLEWARES
 // implement CORS
