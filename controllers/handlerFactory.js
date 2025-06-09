@@ -108,6 +108,7 @@ exports.getAll = (Model, allUserHasAccess = false) =>
     }
 
     const features = new APIFeatures(Model.find(filter), req.query)
+      .filter()
       .sort()
       .paginate();
 

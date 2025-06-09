@@ -18,12 +18,15 @@ const userRouter = require('./routes/userRoutes');
 const adminRouter = require('./routes/adminRoutes');
 const readingRouter = require('./routes/readingRoutes');
 const resultRouter = require('./routes/resultRoutes');
+const songRouter = require('./routes/songsRoutes');
 
 const app = express();
 
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1); // Trust only one proxy (Render's reverse proxy)
 }
+
+console.log('NODE_ENV:', process.env.FRONTEND_URL);
 
 // 1) GLOBAL MIDDLEWARES
 // implement CORS
@@ -82,6 +85,7 @@ app.use('/api/v1/users', userRouter);
 app.use('/api/v1/readings', readingRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/results', resultRouter);
+app.use('/api/v1/songs', songRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
