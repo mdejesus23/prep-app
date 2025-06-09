@@ -9,4 +9,6 @@ router.use(authController.protect);
 
 router.route('/').get(songController.songs);
 
+router.route('/:songId').get(songController.getSong);
+
 module.exports = router;
