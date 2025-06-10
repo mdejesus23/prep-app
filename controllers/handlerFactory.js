@@ -110,9 +110,16 @@ exports.getAll = (Model, allUserHasAccess = false) =>
     const features = new APIFeatures(Model.find(filter), req.query)
       .filter()
       .sort()
+      .limitFields()
       .paginate();
 
     const doc = await features.query;
+
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 100;
+
+    const totalDocuments = await Model.countDocuments(filter);
+    const totalPages = Math.ceil(totalDocuments / limit);
 
     if (!doc) {
       return next(new AppError('No document found with that ID', 404));
@@ -121,6 +128,10 @@ exports.getAll = (Model, allUserHasAccess = false) =>
     res.status(200).json({
       status: 'success',
       results: doc.length,
+      currentPage: page,
+      limit,
+      totalPages,
+      totalDocuments,
       data: doc,
     });
   });
