@@ -18,7 +18,12 @@ class APIFeatures {
     // Add search condition if present
     if (this.queryString.search) {
       const searchRegex = new RegExp(this.queryString.search, 'i');
-      finalQuery.title = { $regex: searchRegex };
+      finalQuery.$or = [
+        { title: { $regex: searchRegex } },
+        { category: { $regex: searchRegex } },
+        { description: { $regex: searchRegex } },
+        // Add other fields here
+      ];
     }
 
     this.query = this.query.find(finalQuery);
