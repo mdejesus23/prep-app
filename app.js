@@ -19,6 +19,7 @@ const adminRouter = require('./routes/adminRoutes');
 const readingRouter = require('./routes/readingRoutes');
 const resultRouter = require('./routes/resultRoutes');
 const songRouter = require('./routes/songsRoutes');
+const bookRouter = require('./routes/bookRoutes');
 
 const app = express();
 
@@ -86,6 +87,7 @@ app.use('/api/v1/readings', readingRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/results', resultRouter);
 app.use('/api/v1/songs', songRouter);
+app.use('/api/v1/books', bookRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
