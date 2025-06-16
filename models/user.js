@@ -19,6 +19,7 @@ const userSchema = new Schema({
     trim: true,
   },
   photo: String,
+  cloudinaryId: String,
   password: {
     type: String,
     required: [true, 'A User must have a password.'],

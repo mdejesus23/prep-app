@@ -2,6 +2,10 @@ const User = require('./../models/user');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const factory = require('./handlerFactory');
+const multer = require('multer');
+const { storage } = require('../utils/cloudinary');
+const upload = multer({ storage });
+const { cloudinary } = require('../utils/cloudinary');
 
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};
@@ -75,6 +79,41 @@ exports.resetUserVotes = catchAsync(async (req, res, next) => {
   await user.resetVotes();
 
   // 3) SEND RESPONSE
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user,
+    },
+  });
+});
+
+// Middleware to handle file upload
+exports.upload = upload.single('image');
+
+exports.uploadProfileImage = catchAsync(async (req, res, next) => {
+  if (!req.file) {
+    return next(new AppError('No image file uploaded.', 400));
+  }
+
+  const { path: imageUrl, filename: imageId } = req.file;
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) return next(new AppError('User not found', 404));
+
+  // 1) Delete old image if it exists
+  if (user.cloudinaryId) {
+    try {
+      await cloudinary.uploader.destroy(user.cloudinaryId);
+    } catch (err) {
+      return next(new AppError('Failed to delete old profile image.', 500));
+    }
+  }
+  // 3) Update the user with the new profile image
+  user.photo = imageUrl; // Ensure your User model has a `photo` field
+  user.cloudinaryId = imageId; // Optional if you want to allow deletion later
+  await user.save({ validateBeforeSave: false });
+
   res.status(200).json({
     status: 'success',
     data: {

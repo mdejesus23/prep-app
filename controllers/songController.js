@@ -2,10 +2,7 @@ const Song = require('../models/song');
 const factory = require('./handlerFactory');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
-
-const optimizeCloudinaryUrl = (url) => {
-  return url.replace('/upload/', '/upload/f_auto,q_auto,w_800/');
-};
+const optimizeCloudinaryUrl = require('../utils/optimizeCloudinaryUrl');
 
 // All user has access to preparation themes.
 const allUserHasAccess = true;

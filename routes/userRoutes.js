@@ -28,4 +28,11 @@ router.delete('/deleteMe', authController.protect, userController.deleteMe);
 
 router.get('/', authController.protect, userController.getAllUsers);
 
+router.patch(
+  '/upload-profile-image',
+  authController.protect,
+  userController.upload, // multer middleware
+  userController.uploadProfileImage
+);
+
 module.exports = router;
