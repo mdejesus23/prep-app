@@ -3,7 +3,8 @@ const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
 exports.getBook = catchAsync(async (req, res, next) => {
-  const book = await Book.findOne(); // Fetches the first (and only) document
+  const bookId = req.params.bookId;
+  const book = await Book.findById(bookId);
 
   if (!book) {
     return next(new AppError('No book found in the database', 404));
