@@ -28,8 +28,6 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1); // Trust only one proxy (Render's reverse proxy)
 }
 
-console.log('NODE_ENV:', process.env.FRONTEND_URL);
-
 // 1) GLOBAL MIDDLEWARES
 // implement CORS
 // app.use(cors());
