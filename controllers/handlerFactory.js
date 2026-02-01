@@ -107,6 +107,28 @@ exports.getAll = (Model, allUserHasAccess = false) =>
       filter = {};
     }
 
+    // Build the query filter from query params (same logic as APIFeatures.filter)
+    const queryObj = { ...req.query };
+    const excludedFields = ['page', 'sort', 'limit', 'fields', 'search'];
+    excludedFields.forEach((el) => delete queryObj[el]);
+
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    const queryFilter = JSON.parse(queryStr);
+
+    // Add search condition if present
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      queryFilter.$or = [
+        { title: { $regex: searchRegex } },
+        { category: { $regex: searchRegex } },
+        { description: { $regex: searchRegex } },
+      ];
+    }
+
+    // Combine base filter with query filter
+    const countFilter = { ...filter, ...queryFilter };
+
     const features = new APIFeatures(Model.find(filter), req.query)
       .filter()
       .sort()
@@ -118,7 +140,7 @@ exports.getAll = (Model, allUserHasAccess = false) =>
     const page = req.query.page * 1 || 1;
     const limit = req.query.limit * 1 || 100;
 
-    const totalDocuments = await Model.countDocuments(filter);
+    const totalDocuments = await Model.countDocuments(countFilter);
     const totalPages = Math.ceil(totalDocuments / limit);
 
     if (!doc) {
