@@ -27,8 +27,7 @@ docker run --rm \
   --email $EMAIL \
   --agree-tos \
   --no-eff-email \
-  -d $DOMAIN \
-  -d www.$DOMAIN
+  -d $DOMAIN
 
 # Stop temporary nginx
 docker stop temp-nginx
