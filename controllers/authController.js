@@ -20,8 +20,11 @@ const createSendToken = (user, statusCode, res) => {
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'Lax',
+    sameSite: 'Lax',
     secure: process.env.NODE_ENV === 'production',
+    ...(process.env.NODE_ENV === 'production' && {
+      domain: process.env.COOKIE_DOMAIN,
+    }),
   };
   res.cookie('jwt', token, cookieOptions);
 
@@ -76,8 +79,11 @@ exports.logout = (req, res) => {
   // Clear the JWT cookie by setting it with a past expiration date
   res.clearCookie('jwt', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Ensures cookie is only cleared over HTTPS in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'Lax',
+    sameSite: 'Lax',
+    secure: process.env.NODE_ENV === 'production',
+    ...(process.env.NODE_ENV === 'production' && {
+      domain: process.env.COOKIE_DOMAIN,
+    }),
   });
 
   res.status(200).json({ status: 'success' });
