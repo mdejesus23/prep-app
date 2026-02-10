@@ -22,6 +22,7 @@ const songRouter = require('./routes/songsRoutes');
 const bookRouter = require('./routes/bookRoutes');
 const liturgyRouter = require('./routes/liturgyRoutes');
 const bibleRouter = require('./routes/bibleRoutes');
+const liturgyOfHoursRouter = require('./routes/liturgyOfHoursRoutes');
 
 const app = express();
 
@@ -90,6 +91,7 @@ app.use('/api/v1/songs', songRouter);
 app.use('/api/v1/books', bookRouter);
 app.use('/api/v1/liturgy', liturgyRouter);
 app.use('/api/v1/bible', bibleRouter);
+app.use('/api/v1/liturgy-of-hours', liturgyOfHoursRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

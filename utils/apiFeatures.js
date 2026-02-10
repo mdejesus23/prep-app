@@ -22,6 +22,7 @@ class APIFeatures {
         { title: { $regex: searchRegex } },
         { category: { $regex: searchRegex } },
         { description: { $regex: searchRegex } },
+        { season: { $regex: searchRegex } },
         // Add other fields here
       ];
     }

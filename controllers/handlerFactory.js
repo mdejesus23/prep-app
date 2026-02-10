@@ -120,9 +120,11 @@ exports.getAll = (Model, allUserHasAccess = false) =>
     if (req.query.search) {
       const searchRegex = new RegExp(req.query.search, 'i');
       queryFilter.$or = [
+        { season: { $regex: searchRegex } },
         { title: { $regex: searchRegex } },
         { category: { $regex: searchRegex } },
         { description: { $regex: searchRegex } },
+        { season: { $regex: searchRegex } },
       ];
     }
 
