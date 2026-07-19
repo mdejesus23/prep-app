@@ -9,6 +9,13 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+    # Rotate container logs so stdout/stderr can't fill the VPS disk.
+    # Dozzle reads these same logs live.
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
 
   caddy:
     image: caddy:alpine
@@ -24,7 +31,56 @@ services:
       - caddy_config:/config
     depends_on:
       - app
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  # ── Monitoring ──────────────────────────────────────────────
+  # VPS CPU / RAM / disk / network + per-container metrics.
+  # Web UI bound to localhost only — reach it via SSH tunnel.
+  netdata:
+    image: netdata/netdata:stable
+    container_name: netdata
+    restart: always
+    hostname: prep-vps
+    pid: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    ports:
+      - '127.0.0.1:19999:19999'
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /:/host/root:ro,rslave
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/log:/host/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # Live web UI to tail/search application (and all container) logs.
+  # Web UI bound to localhost only — reach it via SSH tunnel.
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: always
+    environment:
+      - DOZZLE_NO_ANALYTICS=true
+    ports:
+      - '127.0.0.1:8888:8080'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 volumes:
   caddy_data:
   caddy_config:
+  netdataconfig:
+  netdatalib:
+  netdatacache:

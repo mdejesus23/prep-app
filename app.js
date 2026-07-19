@@ -10,6 +10,8 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 require('dotenv').config();
 const compression = require('compression');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -37,11 +39,17 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL, // Your React frontend URL
     credentials: true, // Allow cookies to be sent/received
-  })
+  }),
 );
 
 // Serving static files
 app.use(express.static(path.join(__dirname, 'public')));
+
+// API documentation (Swagger UI) — dev only, so the endpoint map isn't public.
+// Mounted before helmet() so its CSP doesn't block Swagger UI's assets.
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 
 // Set security HTTP headers
 app.use(helmet());
@@ -49,6 +57,8 @@ app.use(helmet());
 // Development logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined')); // prod traffic → stdout → Docker json-file → Dozzle
 }
 
 // Limit requests from same API
