@@ -6,45 +6,39 @@ const userController = require('../controllers/userController');
 
 /**
  * @openapi
- * tags:
- *   - name: Users
- *     description: Authentication and user account management
- *
- * components:
- *   schemas:
- *     User:
- *       type: object
- *       properties:
- *         _id: { type: string, example: 665f1c2a9b1e2a0012ab34cd }
- *         name: { type: string, example: John Doe }
- *         email: { type: string, format: email, example: john@example.com }
- *         role: { type: string, enum: [user, admin], example: user }
- *         photo: { type: string, example: https://res.cloudinary.com/.../profile.jpg }
- */
-
-/**
- * @openapi
  * /api/v1/users/signup:
  *   post:
  *     tags: [Users]
  *     summary: Register a new user
+ *     description: Creates the account, sends a welcome email and logs the user in.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, email, password, passwordConfirm]
+ *             required: [username, email, password, confirmPassword]
  *             properties:
- *               name: { type: string, example: John Doe }
+ *               username: { type: string, example: johndoe }
  *               email: { type: string, format: email, example: john@example.com }
  *               password: { type: string, format: password, minLength: 8, example: pass1234 }
- *               passwordConfirm: { type: string, format: password, example: pass1234 }
+ *               confirmPassword: { type: string, format: password, example: pass1234 }
  *     responses:
  *       201:
- *         description: User created and logged in (JWT set as `jwt` cookie)
+ *         description: User created and logged in (JWT returned and set as the `jwt` cookie)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: success }
+ *                 token: { type: string, example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/User' }
  *       400:
- *         description: Invalid input or email already in use
+ *         description: Invalid input, passwords do not match, or email/username already in use
  */
 router.post('/signup', authController.signup);
 
@@ -66,7 +60,18 @@ router.post('/signup', authController.signup);
  *               password: { type: string, format: password, example: pass1234 }
  *     responses:
  *       200:
- *         description: Logged in successfully (JWT set as `jwt` cookie)
+ *         description: Logged in successfully (JWT returned and set as the `jwt` cookie)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: success }
+ *                 token: { type: string, example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/User' }
  *       400:
  *         description: Missing email or password
  *       401:
@@ -128,15 +133,15 @@ router.post('/forgotPassword', authController.forgotPassword);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [password, passwordConfirm]
+ *             required: [password, confirmPassword]
  *             properties:
- *               password: { type: string, format: password, example: newpass1234 }
- *               passwordConfirm: { type: string, format: password, example: newpass1234 }
+ *               password: { type: string, format: password, minLength: 8, example: newpass1234 }
+ *               confirmPassword: { type: string, format: password, example: newpass1234 }
  *     responses:
  *       200:
- *         description: Password reset and user logged in
+ *         description: Password reset and user logged in (new JWT issued)
  *       400:
- *         description: Token is invalid or has expired
+ *         description: Token is invalid or has expired, or passwords do not match
  */
 router.patch('/resetPassword/:token', authController.resetPassword); // patch for manipulating a document
 
@@ -153,7 +158,7 @@ router.patch('/resetPassword/:token', authController.resetPassword); // patch fo
  *       200:
  *         description: User's votes reset
  *       401:
- *         description: Not authenticated
+ *         $ref: '#/components/responses/Unauthorized'
  */
 // needs to authenticate user before updating user info.
 router.post(
@@ -177,16 +182,16 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [passwordCurrent, password, passwordConfirm]
+ *             required: [currentPassword, newPassword, confirmNewPassword]
  *             properties:
- *               passwordCurrent: { type: string, format: password, example: pass1234 }
- *               password: { type: string, format: password, example: newpass1234 }
- *               passwordConfirm: { type: string, format: password, example: newpass1234 }
+ *               currentPassword: { type: string, format: password, example: pass1234 }
+ *               newPassword: { type: string, format: password, minLength: 8, example: newpass1234 }
+ *               confirmNewPassword: { type: string, format: password, example: newpass1234 }
  *     responses:
  *       200:
  *         description: Password updated and new JWT issued
  *       401:
- *         description: Current password is wrong or not authenticated
+ *         description: Current password is wrong, or not authenticated
  */
 router.patch(
   '/updateMyPassword',
@@ -211,10 +216,13 @@ router.patch(
  *             schema:
  *               type: object
  *               properties:
+ *                 status: { type: string, example: success }
  *                 data:
- *                   $ref: '#/components/schemas/User'
+ *                   type: object
+ *                   properties:
+ *                     data: { $ref: '#/components/schemas/User' }
  *       401:
- *         description: Not authenticated
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/me', authController.protect, userController.getUser);
 
@@ -223,7 +231,8 @@ router.get('/me', authController.protect, userController.getUser);
  * /api/v1/users/updateMe:
  *   patch:
  *     tags: [Users]
- *     summary: Update the current user's name/email
+ *     summary: Update the current user's username/email
+ *     description: Only `username` and `email` are applied; any other field in the body is ignored.
  *     security:
  *       - bearerAuth: []
  *       - cookieAuth: []
@@ -233,15 +242,25 @@ router.get('/me', authController.protect, userController.getUser);
  *           schema:
  *             type: object
  *             properties:
- *               name: { type: string, example: John Doe }
+ *               username: { type: string, example: johndoe }
  *               email: { type: string, format: email, example: john@example.com }
  *     responses:
  *       200:
  *         description: Updated user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: success }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user: { $ref: '#/components/schemas/User' }
  *       400:
- *         description: Attempted to update password on this route
+ *         description: Attempted to update the password on this route
  *       401:
- *         description: Not authenticated
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.patch('/updateMe', authController.protect, userController.updateMe);
 
@@ -258,7 +277,7 @@ router.patch('/updateMe', authController.protect, userController.updateMe);
  *       204:
  *         description: Account deactivated (no content)
  *       401:
- *         description: Not authenticated
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.delete('/deleteMe', authController.protect, userController.deleteMe);
 
@@ -268,6 +287,7 @@ router.delete('/deleteMe', authController.protect, userController.deleteMe);
  *   get:
  *     tags: [Users]
  *     summary: Get all users
+ *     description: Returns every active user. Any authenticated user may call this.
  *     security:
  *       - bearerAuth: []
  *       - cookieAuth: []
@@ -279,12 +299,16 @@ router.delete('/deleteMe', authController.protect, userController.deleteMe);
  *             schema:
  *               type: object
  *               properties:
+ *                 status: { type: string, example: success }
+ *                 results: { type: integer, example: 12 }
  *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/User'
+ *                   type: object
+ *                   properties:
+ *                     users:
+ *                       type: array
+ *                       items: { $ref: '#/components/schemas/User' }
  *       401:
- *         description: Not authenticated
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get('/', authController.protect, userController.getAllUsers);
 
@@ -311,7 +335,7 @@ router.get('/', authController.protect, userController.getAllUsers);
  *       200:
  *         description: Profile image uploaded
  *       401:
- *         description: Not authenticated
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.patch(
   '/upload-profile-image',

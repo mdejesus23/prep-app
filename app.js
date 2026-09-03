@@ -45,11 +45,36 @@ app.use(
 // Serving static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API documentation (Swagger UI) — dev only, so the endpoint map isn't public.
-// Mounted before helmet() so its CSP doesn't block Swagger UI's assets.
-if (process.env.NODE_ENV !== 'production') {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-}
+// API documentation (Swagger UI) — public in every environment so the API can
+// be explored without credentials. Mounted before the global helmet() with its
+// own policy, because Swagger UI needs a looser CSP (inline styles, blob: web
+// workers) than the API itself should run with.
+app.use(
+  '/api-docs',
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        fontSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        workerSrc: ["'self'", 'blob:'],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  }),
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Preparation App API — Documentation',
+    swaggerOptions: {
+      docExpansion: 'list',
+      persistAuthorization: true,
+    },
+  }),
+);
 
 // Set security HTTP headers
 app.use(helmet());
